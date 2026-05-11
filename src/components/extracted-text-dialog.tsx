@@ -12,6 +12,7 @@ import type { LabelFields } from "@/lib/schema";
 const labelFields: Array<{ key: keyof LabelFields; label: string }> = [
   { key: "brandName", label: "Brand name" },
   { key: "classType", label: "Class/type" },
+  { key: "detectedBeverageType", label: "Detected beverage type" },
   { key: "alcoholContent", label: "Alcohol content" },
   { key: "netContents", label: "Net contents" },
   { key: "producerNameAddress", label: "Producer / bottler / importer" },

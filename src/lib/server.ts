@@ -39,7 +39,7 @@ export function readExpectedFields(formData: FormData) {
     producerNameAddress: formData.get("producerNameAddress"),
     countryOfOrigin: formData.get("countryOfOrigin"),
     governmentWarning: formData.get("governmentWarning"),
-    beverageType: formData.get("beverageType") || "spirits",
+    beverageType: formData.get("beverageType") || undefined,
   });
 }
 

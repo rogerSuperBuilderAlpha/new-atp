@@ -20,11 +20,11 @@ export async function POST(request: Request) {
   const hasCsv = csvFile instanceof File && csvFile.size > 0;
 
   const beverageTypeValue = formData.get("beverageType");
-  const defaultBeverageType: BeverageType =
+  const overrideBeverageType: BeverageType | null =
     typeof beverageTypeValue === "string" &&
     beverageTypes.includes(beverageTypeValue as BeverageType)
       ? (beverageTypeValue as BeverageType)
-      : "spirits";
+      : null;
 
   const files = new Map<string, File>();
   for (const entry of formData.getAll("images")) {
@@ -103,9 +103,16 @@ export async function POST(request: Request) {
 
             let result: VerificationResult;
             if (job.expected) {
-              result = buildVerificationResult(job.expected, extracted);
+              result = buildVerificationResult(
+                overrideBeverageType
+                  ? { ...job.expected, beverageType: overrideBeverageType }
+                  : job.expected,
+                extracted,
+              );
             } else {
-              const complianceChecks = checkCompliance(extracted, defaultBeverageType);
+              const beverageType =
+                overrideBeverageType ?? extracted.detectedBeverageType ?? "spirits";
+              const complianceChecks = checkCompliance(extracted, beverageType);
               result = {
                 extracted,
                 fieldVerdicts: [],

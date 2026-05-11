@@ -15,6 +15,7 @@ const EXTRACTION_USER_PROMPT = `Read this alcohol beverage label and extract:
 - bottler/producer/importer name and address
 - country of origin
 - the full Government Health Warning statement
+- the most likely beverage category (spirits, wine, beer, or other) based on class/type wording and alcohol strength
 - any other useful text
 
 Focus on compliance review. Preserve exact warning-statement wording and capitalization.`;

@@ -27,6 +27,12 @@ export const LabelFieldsSchema = z.object({
     .string()
     .nullable()
     .describe("Full Government Health Warning statement exactly as visible."),
+  detectedBeverageType: z
+    .enum(beverageTypes)
+    .nullable()
+    .describe(
+      'Best classification of the beverage based on visible class/type, ABV, and proof. Use "spirits" for distilled spirits/liquor, "wine" for wine/champagne/cider above 7% ABV, "beer" for beer/ale/malt beverages, or "other" if the category is genuinely unclear.',
+    ),
   additionalText: z
     .array(z.string())
     .describe("Other notable label text not covered by the named fields."),
@@ -48,7 +54,7 @@ export const ExpectedFieldsSchema = z.object({
   producerNameAddress: z.string().optional(),
   countryOfOrigin: z.string().optional(),
   governmentWarning: z.string().optional(),
-  beverageType: z.enum(beverageTypes).default("spirits"),
+  beverageType: z.enum(beverageTypes).optional(),
 });
 
 export const FieldVerdictSchema = z.object({

@@ -36,6 +36,7 @@ const labels: Record<keyof LabelFields, string> = {
   producerNameAddress: "Producer / bottler / importer",
   countryOfOrigin: "Country of origin",
   governmentWarning: "Government Warning",
+  detectedBeverageType: "Detected beverage type",
   additionalText: "Additional text",
   confidence: "Extraction confidence",
   imageQualityNotes: "Image quality",

@@ -109,7 +109,9 @@ export function buildVerificationResult(
   extracted: LabelFields,
 ): VerificationResult {
   const fieldVerdicts = compareFields(expected, extracted);
-  const complianceChecks = checkCompliance(extracted, expected.beverageType);
+  const beverageType =
+    expected.beverageType ?? extracted.detectedBeverageType ?? "spirits";
+  const complianceChecks = checkCompliance(extracted, beverageType);
   const summary = summarize([...fieldVerdicts, ...complianceChecks]);
 
   return {

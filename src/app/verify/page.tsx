@@ -1,10 +1,16 @@
 "use client";
 
-import { FileText, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronDown, FileText, Loader2, ScanLine, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { CompactShell } from "@/components/compact-shell";
 import { Dropzone } from "@/components/dropzone";
 import { beverageOptions, expectedFieldDefinitions } from "@/components/field-definitions";
+import {
+  applicationFieldHelp,
+  beverageTypeHelp,
+  complianceSectionHelp,
+  expectedFieldHelp,
+} from "@/components/field-help";
 import { ExtractedTextDialog } from "@/components/extracted-text-dialog";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { ResultSummary } from "@/components/result-summary";
@@ -18,21 +24,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { VerdictDetailDialog } from "@/components/verdict-detail-dialog";
 import { VerdictRow, type VerdictItem } from "@/components/verdict-row";
 import { WarningDiffDialog } from "@/components/warning-diff-dialog";
-import { STANDARD_GOVERNMENT_WARNING, type ExpectedFields, type FieldVerdict, type VerificationResult } from "@/lib/schema";
+import {
+  STANDARD_GOVERNMENT_WARNING,
+  type BeverageType,
+  type ExpectedFields,
+  type FieldVerdict,
+  type VerificationResult,
+} from "@/lib/schema";
+
+const beverageLabelLookup: Record<BeverageType, string> = Object.fromEntries(
+  beverageOptions.map((option) => [option.value, option.label]),
+) as Record<BeverageType, string>;
 
 export default function VerifyPage() {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [expected, setExpected] = useState<ExpectedFields>({
-    beverageType: "spirits",
-    governmentWarning: STANDARD_GOVERNMENT_WARNING,
-  });
+  const [expected, setExpected] = useState<ExpectedFields>({});
+  const [showFields, setShowFields] = useState(false);
   const [warningEditorOpen, setWarningEditorOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<VerdictItem | null>(null);
   const [warningItem, setWarningItem] = useState<FieldVerdict | null>(null);
@@ -42,13 +57,17 @@ export default function VerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const hasAnyExpected = expectedFieldDefinitions.some(
+    (field) => Boolean((expected[field.key] as string | undefined)?.trim()),
+  );
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setResult(null);
 
     if (!image) {
-      setError("Choose a label image before running verification.");
+      setError("Choose a label image before running analysis.");
       return;
     }
 
@@ -58,15 +77,11 @@ export default function VerifyPage() {
       formData.append("image", image);
       formData.append("expected", JSON.stringify(expected));
 
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        body: formData,
-      });
-
+      const response = await fetch("/api/verify", { method: "POST", body: formData });
       const payload = await response.json();
 
       if (!response.ok) {
-        setError(payload.error ?? "Verification failed.");
+        setError(payload.error ?? "Analysis failed.");
         return;
       }
 
@@ -79,8 +94,17 @@ export default function VerifyPage() {
   async function onLoadSample() {
     setError(null);
     setExpected(sampleExpectedFields);
+    setShowFields(true);
     setImage(await loadSampleLabel());
     setResult(null);
+  }
+
+  function onClearAll() {
+    setImage(null);
+    setExpected({});
+    setShowFields(false);
+    setResult(null);
+    setError(null);
   }
 
   function openVerdict(item: VerdictItem) {
@@ -102,23 +126,95 @@ export default function VerifyPage() {
     setDetailItem(item);
   }
 
+  const detectedBeverage = result?.extracted.detectedBeverageType;
+  const fieldVerdictsCount = result?.fieldVerdicts.length ?? 0;
+
   return (
     <CompactShell
-      eyebrow="Single label verification"
-      title="Verify label"
-      description="Keep the core review in one viewport: label image on the left, expected fields or verdicts on the right."
+      eyebrow="Single-label review"
+      title="Review a label"
+      description="Upload a label image to extract the visible fields and run the standard TTB compliance checks. Optionally provide values from the COLA application for a side-by-side comparison."
     >
-      <form className="grid gap-4 lg:h-[calc(100vh-9.5rem)] lg:min-h-[34rem] lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]" onSubmit={onSubmit}>
+      <section className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
+            How to use this page
+          </p>
+          <InfoTip title="What happens when you click Analyze">
+            <p>
+              The image is sent to a vision model that extracts the visible text fields and
+              classifies the beverage type. The extracted text is then checked against TTB
+              compliance rules using deterministic logic (not the model). Nothing is stored
+              after the response is returned.
+            </p>
+          </InfoTip>
+        </div>
+        <ol className="mt-3 grid gap-2 text-sm leading-6 text-slate-700 md:grid-cols-3">
+          <li className="rounded-2xl bg-slate-50 p-3">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Step 1
+            </span>
+            <p className="mt-1 font-semibold text-slate-950">Upload the label image.</p>
+            <p className="mt-1">PNG, JPEG, GIF, or WEBP. Use the largest clear copy available.</p>
+          </li>
+          <li className="rounded-2xl bg-slate-50 p-3">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Step 2 (optional)
+            </span>
+            <p className="mt-1 font-semibold text-slate-950">
+              Add the application values for comparison.
+            </p>
+            <p className="mt-1">
+              Skip this step for a compliance-only audit. Add it to also see a field-by-field
+              comparison.
+            </p>
+          </li>
+          <li className="rounded-2xl bg-slate-50 p-3">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Step 3
+            </span>
+            <p className="mt-1 font-semibold text-slate-950">Analyze and review.</p>
+            <p className="mt-1">Open any row to see the expected and extracted text in detail.</p>
+          </li>
+        </ol>
+      </section>
+
+      <form
+        className="grid gap-4 lg:h-[calc(100vh-22rem)] lg:min-h-[34rem] lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]"
+        onSubmit={onSubmit}
+      >
         <section className="flex flex-col gap-3 lg:min-h-0">
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm">
             <div>
-              <p className="text-sm font-black text-slate-950">Label artwork</p>
-              <p className="text-xs text-slate-600">Click the preview to inspect glare, angle, or tiny warning text.</p>
+              <p className="text-sm font-bold text-slate-950">Label artwork</p>
+              <p className="text-xs text-slate-600">
+                Tap the preview to inspect glare, angle, or fine print.
+              </p>
             </div>
-            <Button type="button" variant="outline" className="rounded-full" onClick={onLoadSample}>
-              <Sparkles className="mr-2 h-4 w-4" aria-hidden />
-              Load sample
-            </Button>
+            <div className="flex gap-2">
+              {image ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={onClearAll}
+                >
+                  <X className="mr-1 h-4 w-4" aria-hidden />
+                  Clear
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={onLoadSample}
+              >
+                <Sparkles className="mr-2 h-4 w-4" aria-hidden />
+                Load sample
+              </Button>
+            </div>
           </div>
           <Dropzone
             file={image}
@@ -136,129 +232,47 @@ export default function VerifyPage() {
         </section>
 
         <section className="flex flex-col rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm lg:min-h-0">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-black text-slate-950">
-                {result ? "Verdicts" : "Expected application fields"}
-              </p>
-              <p className="text-xs text-slate-600">
-                {result ? "Tap any row for details." : "Long text stays collapsed until needed."}
-              </p>
-            </div>
-            <select
-              aria-label="Beverage type"
-              value={expected.beverageType}
-              onChange={(event) =>
-                setExpected((current) => ({
-                  ...current,
-                  beverageType: event.target.value as ExpectedFields["beverageType"],
-                }))
-              }
-              className="h-10 shrink-0 rounded-full border border-input bg-background px-3 text-sm"
-            >
-              {beverageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {result ? (
+            <ResultPanel
+              result={result}
+              detectedBeverage={detectedBeverage}
+              fieldVerdictsCount={fieldVerdictsCount}
+              onOpenVerdict={openVerdict}
+              onOpenExtracted={() => setExtractedOpen(true)}
+              onEditAgain={() => setResult(null)}
+            />
+          ) : (
+            <SetupPanel
+              showFields={showFields}
+              hasAnyExpected={hasAnyExpected}
+              expected={expected}
+              setExpected={setExpected}
+              onToggleFields={() => setShowFields((current) => !current)}
+              onEditWarning={() => setWarningEditorOpen(true)}
+            />
+          )}
 
           {error ? (
-            <Alert variant="destructive" className="mb-3">
-              <AlertTitle>Unable to verify</AlertTitle>
+            <Alert variant="destructive" className="mt-3">
+              <AlertTitle>Unable to analyze</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-
-          {result ? (
-            <div className="flex flex-1 flex-col gap-3 lg:min-h-0">
-              <ResultSummary summary={result.summary} compact />
-              <div className="space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                    Application field comparison
-                  </p>
-                  {result.fieldVerdicts.map((item) => (
-                    <VerdictRow key={item.field} item={item} onClick={() => openVerdict(item)} />
-                  ))}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                    TTB compliance checks
-                  </p>
-                  {result.complianceChecks.map((item) => (
-                    <VerdictRow key={item.id} item={item} onClick={() => openVerdict(item)} />
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 border-t border-slate-200 pt-3">
-                <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setExtractedOpen(true)}>
-                  <FileText className="mr-2 h-4 w-4" aria-hidden />
-                  Extracted text
-                </Button>
-                <Button type="button" className="rounded-2xl" onClick={() => setResult(null)}>
-                  Edit fields
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-              {expectedFieldDefinitions
-                .filter((field) => field.key !== "governmentWarning")
-                .map((field) => (
-                  <div key={field.key} className="space-y-1.5">
-                    <Label htmlFor={field.key} className="text-xs font-bold">
-                      {field.label}
-                    </Label>
-                    {field.key === "producerNameAddress" ? (
-                      <Textarea
-                        id={field.key}
-                        value={(expected[field.key] as string | undefined) ?? ""}
-                        placeholder={field.placeholder}
-                        rows={2}
-                        onChange={(event) =>
-                          setExpected((current) => ({ ...current, [field.key]: event.target.value }))
-                        }
-                      />
-                    ) : (
-                      <Input
-                        id={field.key}
-                        value={(expected[field.key] as string | undefined) ?? ""}
-                        placeholder={field.placeholder}
-                        onChange={(event) =>
-                          setExpected((current) => ({ ...current, [field.key]: event.target.value }))
-                        }
-                      />
-                    )}
-                  </div>
-                ))}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                      Government Warning
-                    </p>
-                    <p className="mt-1 line-clamp-1 text-sm text-slate-700">
-                      {expected.governmentWarning || "No expected warning text"}
-                    </p>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setWarningEditorOpen(true)}>
-                    Edit
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="mt-3 border-t border-slate-200 pt-3">
             <Button size="lg" className="h-12 w-full rounded-2xl text-base font-bold" disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden />
               ) : (
-                <ShieldCheck className="mr-2 h-5 w-5" aria-hidden />
+                <ScanLine className="mr-2 h-5 w-5" aria-hidden />
               )}
-              {isLoading ? "Reading label..." : result ? "Run again" : "Verify label"}
+              {isLoading
+                ? "Reading label..."
+                : result
+                  ? "Analyze again"
+                  : hasAnyExpected
+                    ? "Analyze and compare"
+                    : "Analyze label"}
             </Button>
           </div>
         </section>
@@ -267,10 +281,10 @@ export default function VerifyPage() {
       <Dialog open={warningEditorOpen} onOpenChange={setWarningEditorOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Expected Government Warning</DialogTitle>
+            <DialogTitle>Expected Government Warning text</DialogTitle>
             <DialogDescription>
-              Keep this collapsed during routine review. Edit only when the application expects a
-              different warning statement.
+              Provide the warning text from the application. Most applications use the standard
+              statutory text; edit only when the application explicitly differs.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -285,7 +299,10 @@ export default function VerifyPage() {
               type="button"
               variant="outline"
               onClick={() =>
-                setExpected((current) => ({ ...current, governmentWarning: STANDARD_GOVERNMENT_WARNING }))
+                setExpected((current) => ({
+                  ...current,
+                  governmentWarning: STANDARD_GOVERNMENT_WARNING,
+                }))
               }
             >
               Use standard text
@@ -319,5 +336,258 @@ export default function VerifyPage() {
         onOpenChange={setLightboxOpen}
       />
     </CompactShell>
+  );
+}
+
+function SetupPanel({
+  showFields,
+  hasAnyExpected,
+  expected,
+  setExpected,
+  onToggleFields,
+  onEditWarning,
+}: {
+  showFields: boolean;
+  hasAnyExpected: boolean;
+  expected: ExpectedFields;
+  setExpected: React.Dispatch<React.SetStateAction<ExpectedFields>>;
+  onToggleFields: () => void;
+  onEditWarning: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-bold text-slate-950">Application values for comparison</p>
+            <InfoTip title={applicationFieldHelp.title}>
+              <p>{applicationFieldHelp.body}</p>
+            </InfoTip>
+          </div>
+          <p className="text-xs text-slate-600">
+            {showFields
+              ? "Provide the values you would compare against in the application."
+              : "Optional. Add these to also see a field-by-field comparison."}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-full"
+          onClick={onToggleFields}
+        >
+          <ChevronDown
+            className={`mr-2 h-4 w-4 transition ${showFields ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+          {showFields ? "Hide fields" : hasAnyExpected ? "Edit fields" : "Add fields"}
+        </Button>
+      </div>
+
+      {showFields ? (
+        <div className="flex-1 space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+          {expectedFieldDefinitions
+            .filter((field) => field.key !== "governmentWarning")
+            .map((field) => {
+              const help = expectedFieldHelp[field.key];
+              return (
+                <div key={field.key} className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor={field.key} className="text-xs font-bold">
+                      {field.label}
+                    </Label>
+                    {help ? (
+                      <InfoTip title={help.title}>
+                        <p>{help.body}</p>
+                      </InfoTip>
+                    ) : null}
+                  </div>
+                  {field.key === "producerNameAddress" ? (
+                    <Textarea
+                      id={field.key}
+                      value={(expected[field.key] as string | undefined) ?? ""}
+                      placeholder={field.placeholder}
+                      rows={2}
+                      onChange={(event) =>
+                        setExpected((current) => ({ ...current, [field.key]: event.target.value }))
+                      }
+                    />
+                  ) : (
+                    <Input
+                      id={field.key}
+                      value={(expected[field.key] as string | undefined) ?? ""}
+                      placeholder={field.placeholder}
+                      onChange={(event) =>
+                        setExpected((current) => ({ ...current, [field.key]: event.target.value }))
+                      }
+                    />
+                  )}
+                </div>
+              );
+            })}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Government Warning
+                  </p>
+                  <InfoTip title={expectedFieldHelp.governmentWarning.title}>
+                    <p>{expectedFieldHelp.governmentWarning.body}</p>
+                  </InfoTip>
+                </div>
+                <p className="mt-1 line-clamp-1 text-sm text-slate-700">
+                  {expected.governmentWarning || "Standard statutory text will be assumed."}
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={onEditWarning}>
+                Edit
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="beverageType-override" className="text-xs font-bold">
+                    Beverage type override
+                  </Label>
+                  <InfoTip title={beverageTypeHelp.title}>
+                    <p>{beverageTypeHelp.body}</p>
+                  </InfoTip>
+                </div>
+                <p className="mt-1 text-xs text-slate-600">
+                  Leave on Auto-detect unless the application category differs.
+                </p>
+              </div>
+              <select
+                id="beverageType-override"
+                value={expected.beverageType ?? ""}
+                onChange={(event) =>
+                  setExpected((current) => ({
+                    ...current,
+                    beverageType: (event.target.value || undefined) as
+                      | BeverageType
+                      | undefined,
+                  }))
+                }
+                className="h-10 shrink-0 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Auto-detect</option>
+                {beverageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col justify-center rounded-3xl bg-slate-50 p-5 text-sm leading-6 text-slate-700">
+          <p className="text-base font-bold text-slate-950">
+            Ready when you are.
+          </p>
+          <p className="mt-2">
+            With an image alone, the system will read the label, classify the beverage type, and
+            run the standard compliance checks (required fields, ABV format, net contents
+            wording, Government Warning text, image readability).
+          </p>
+          <p className="mt-2">
+            To also compare against COLA application values, tap{" "}
+            <span className="font-semibold">Add fields</span> above.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultPanel({
+  result,
+  detectedBeverage,
+  fieldVerdictsCount,
+  onOpenVerdict,
+  onOpenExtracted,
+  onEditAgain,
+}: {
+  result: VerificationResult;
+  detectedBeverage: BeverageType | null | undefined;
+  fieldVerdictsCount: number;
+  onOpenVerdict: (item: VerdictItem) => void;
+  onOpenExtracted: () => void;
+  onEditAgain: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 lg:min-h-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-bold text-slate-950">Results</p>
+            <InfoTip title="How results are produced">
+              <p>
+                The vision model extracts label text. Deterministic comparison and TTB rules
+                produce the verdicts you see. Tap any row for the expected and extracted values.
+              </p>
+            </InfoTip>
+          </div>
+          <p className="text-xs text-slate-600">
+            {detectedBeverage
+              ? `Classified as ${beverageLabelLookup[detectedBeverage]} from the label.`
+              : "Tap any row for the supporting evidence."}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-full"
+          onClick={onEditAgain}
+        >
+          Edit inputs
+        </Button>
+      </div>
+
+      <ResultSummary summary={result.summary} compact />
+
+      <div className="space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+        {fieldVerdictsCount > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Application field comparison
+              </p>
+              <InfoTip title={applicationFieldHelp.title}>
+                <p>{applicationFieldHelp.body}</p>
+              </InfoTip>
+            </div>
+            {result.fieldVerdicts.map((item) => (
+              <VerdictRow key={item.field} item={item} onClick={() => onOpenVerdict(item)} />
+            ))}
+          </div>
+        ) : null}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              TTB compliance checks
+            </p>
+            <InfoTip title={complianceSectionHelp.title}>
+              <p>{complianceSectionHelp.body}</p>
+            </InfoTip>
+          </div>
+          {result.complianceChecks.map((item) => (
+            <VerdictRow key={item.id} item={item} onClick={() => onOpenVerdict(item)} />
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-3">
+        <Button type="button" variant="outline" className="w-full rounded-2xl" onClick={onOpenExtracted}>
+          <FileText className="mr-2 h-4 w-4" aria-hidden />
+          View extracted label text
+        </Button>
+      </div>
+    </div>
   );
 }

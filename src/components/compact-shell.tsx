@@ -30,10 +30,7 @@ export function CompactShell({
           </Link>
           <nav className="flex shrink-0 gap-0.5 sm:gap-1">
             <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-              <Link href="/verify">Verify</Link>
-            </Button>
-            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-              <Link href="/audit">Audit</Link>
+              <Link href="/verify">Review</Link>
             </Button>
             <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
               <Link href="/batch">Batch</Link>
