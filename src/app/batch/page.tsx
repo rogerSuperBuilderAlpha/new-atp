@@ -1,9 +1,10 @@
 "use client";
 
-import { Download, FileSpreadsheet, Loader2, UploadCloud } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, RotateCcw, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import { BatchRowDialog } from "@/components/batch-row-dialog";
 import { CompactShell } from "@/components/compact-shell";
+import { beverageOptions } from "@/components/field-definitions";
 import { type BatchResultRow, useFilteredBatchRows } from "@/components/results-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,25 +21,32 @@ import {
 } from "@/components/ui/table";
 import { VerdictBadge } from "@/components/verdict-badge";
 import { batchTemplateCsv, resultsToCsv } from "@/lib/csv";
+import type { BeverageType } from "@/lib/schema";
 
 export default function BatchPage() {
   const [csv, setCsv] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [beverageType, setBeverageType] = useState<BeverageType>("spirits");
   const [rows, setRows] = useState<BatchResultRow[]>([]);
   const [selectedRow, setSelectedRow] = useState<BatchResultRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const { filter, setFilter, filteredRows } = useFilteredBatchRows(rows);
+
+  function resetForm() {
+    setCsv(null);
+    setImages([]);
+    setRows([]);
+    setError(null);
+    setFilter("all");
+    setFormKey((current) => current + 1);
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRows([]);
     setError(null);
-
-    if (!csv) {
-      setError("Choose a CSV file before starting batch verification.");
-      return;
-    }
 
     if (images.length === 0) {
       setError("Choose at least one label image.");
@@ -47,7 +55,8 @@ export default function BatchPage() {
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append("csv", csv);
+    if (csv) formData.append("csv", csv);
+    formData.append("beverageType", beverageType);
     for (const image of images) formData.append("images", image);
 
     const response = await fetch("/api/batch", { method: "POST", body: formData });
@@ -113,21 +122,27 @@ export default function BatchPage() {
           onSubmit={onSubmit}
           className="rounded-3xl border border-white/70 bg-white/90 p-3 shadow-sm backdrop-blur lg:sticky lg:top-3 lg:z-10"
         >
-          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-end">
+          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto_auto] lg:items-end">
             <div className="space-y-1">
-              <Label htmlFor="csv" className="text-xs font-bold">Expected fields CSV</Label>
+              <Label htmlFor="csv" className="text-xs font-bold">
+                Expected fields CSV <span className="font-normal text-slate-500">(optional)</span>
+              </Label>
                 <Input
+                  key={`csv-${formKey}`}
                   id="csv"
                   type="file"
                   accept=".csv,text/csv"
                   onChange={(event) => setCsv(event.target.files?.item(0) ?? null)}
                 />
-              {csv ? <p className="truncate text-xs font-medium text-slate-600">{csv.name}</p> : null}
+              <p className="truncate text-xs text-slate-600">
+                {csv ? csv.name : "Skip CSV for audit-only (compliance checklist per image)"}
+              </p>
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="images" className="text-xs font-bold">Label images</Label>
                 <Input
+                  key={`images-${formKey}`}
                   id="images"
                   type="file"
                   accept="image/png,image/jpeg,image/gif,image/webp"
@@ -135,8 +150,25 @@ export default function BatchPage() {
                   onChange={(event) => setImages(Array.from(event.target.files ?? []))}
                 />
               <p className="truncate text-xs text-slate-600">
-                {images.length ? `${images.length} images selected` : "Exact filename match required"}
+                {images.length ? `${images.length} images selected` : "Exact filename match required when CSV is used"}
               </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="beverageType" className="text-xs font-bold">Beverage type</Label>
+              <select
+                id="beverageType"
+                value={beverageType}
+                onChange={(event) => setBeverageType(event.target.value as BeverageType)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {beverageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="truncate text-xs text-slate-600">Used when CSV is absent</p>
             </div>
 
             <Button type="button" variant="outline" className="h-10 rounded-2xl" onClick={downloadTemplate}>
@@ -150,7 +182,7 @@ export default function BatchPage() {
               ) : (
                 <UploadCloud className="mr-2 h-4 w-4" aria-hidden />
               )}
-                {isLoading ? "Processing batch..." : "Start batch"}
+                {isLoading ? "Processing batch..." : csv ? "Start batch verify" : "Start batch audit"}
               </Button>
           </div>
 
@@ -187,7 +219,7 @@ export default function BatchPage() {
                 </Button>
               ))}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <p className="text-sm font-semibold text-slate-600">{filteredRows.length} visible rows</p>
               <Button
                 type="button"
@@ -199,6 +231,17 @@ export default function BatchPage() {
               >
                 <Download className="mr-2 h-4 w-4" aria-hidden />
                 Download report
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={resetForm}
+                disabled={isLoading || (!csv && images.length === 0 && rows.length === 0)}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
+                Reset
               </Button>
             </div>
           </div>

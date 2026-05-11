@@ -1,31 +1,30 @@
-import { buildVerificationResult } from "@/lib/compare";
+import { buildVerificationResult, summarize } from "@/lib/compare";
+import { checkCompliance } from "@/lib/compliance";
 import { parseBatchCsv } from "@/lib/csv";
 import { extractLabelFromImage } from "@/lib/extract";
+import { beverageTypes, type BeverageType, type VerificationResult } from "@/lib/schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-type BatchJob = Awaited<ReturnType<typeof parseBatchCsv>>[number];
+type BatchJob = {
+  rowId: string;
+  imageFile: string;
+  file: File | undefined;
+  expected: Awaited<ReturnType<typeof parseBatchCsv>>[number] | null;
+};
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const csvFile = formData.get("csv");
+  const hasCsv = csvFile instanceof File && csvFile.size > 0;
 
-  if (!(csvFile instanceof File)) {
-    return Response.json({ error: "Missing CSV file." }, { status: 400 });
-  }
-
-  const csvText = await csvFile.text();
-  let rows: BatchJob[];
-
-  try {
-    rows = parseBatchCsv(csvText);
-  } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Invalid CSV." },
-      { status: 400 },
-    );
-  }
+  const beverageTypeValue = formData.get("beverageType");
+  const defaultBeverageType: BeverageType =
+    typeof beverageTypeValue === "string" &&
+    beverageTypes.includes(beverageTypeValue as BeverageType)
+      ? (beverageTypeValue as BeverageType)
+      : "spirits";
 
   const files = new Map<string, File>();
   for (const entry of formData.getAll("images")) {
@@ -37,6 +36,39 @@ export async function POST(request: Request) {
     }
   }
 
+  let jobs: BatchJob[];
+
+  if (hasCsv) {
+    let rows: Awaited<ReturnType<typeof parseBatchCsv>>;
+    try {
+      rows = parseBatchCsv(await (csvFile as File).text());
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Invalid CSV." },
+        { status: 400 },
+      );
+    }
+    jobs = rows.map((row) => ({
+      rowId: row.rowId,
+      imageFile: row.imageFile,
+      file: files.get(row.imageFile),
+      expected: row,
+    }));
+  } else {
+    if (files.size === 0) {
+      return Response.json(
+        { error: "Provide a CSV with images, or at least one image for audit-only mode." },
+        { status: 400 },
+      );
+    }
+    jobs = [...files.entries()].map(([name, file], index) => ({
+      rowId: String(index + 1),
+      imageFile: name,
+      file,
+      expected: null,
+    }));
+  }
+
   const encoder = new TextEncoder();
   const concurrency = 5;
 
@@ -45,19 +77,18 @@ export async function POST(request: Request) {
       let cursor = 0;
 
       async function worker() {
-        while (cursor < rows.length) {
-          const row = rows[cursor];
+        while (cursor < jobs.length) {
+          const job = jobs[cursor];
           cursor += 1;
-          const file = files.get(row.imageFile);
 
-          if (!file) {
+          if (!job.file) {
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
-                  rowId: row.rowId,
-                  imageFile: row.imageFile,
+                  rowId: job.rowId,
+                  imageFile: job.imageFile,
                   status: "error",
-                  error: `No uploaded image matched ${row.imageFile}.`,
+                  error: `No uploaded image matched ${job.imageFile}.`,
                 }) + "\n",
               ),
             );
@@ -66,16 +97,28 @@ export async function POST(request: Request) {
 
           try {
             const extracted = await extractLabelFromImage(
-              new Uint8Array(await file.arrayBuffer()),
-              file.type || "image/*",
+              new Uint8Array(await job.file.arrayBuffer()),
+              job.file.type || "image/*",
             );
-            const result = buildVerificationResult(row, extracted);
+
+            let result: VerificationResult;
+            if (job.expected) {
+              result = buildVerificationResult(job.expected, extracted);
+            } else {
+              const complianceChecks = checkCompliance(extracted, defaultBeverageType);
+              result = {
+                extracted,
+                fieldVerdicts: [],
+                complianceChecks,
+                summary: summarize(complianceChecks),
+              };
+            }
 
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
-                  rowId: row.rowId,
-                  imageFile: row.imageFile,
+                  rowId: job.rowId,
+                  imageFile: job.imageFile,
                   status: result.summary.status,
                   result,
                 }) + "\n",
@@ -85,8 +128,8 @@ export async function POST(request: Request) {
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
-                  rowId: row.rowId,
-                  imageFile: row.imageFile,
+                  rowId: job.rowId,
+                  imageFile: job.imageFile,
                   status: "error",
                   error: error instanceof Error ? error.message : "Unable to process row.",
                 }) + "\n",
@@ -96,7 +139,7 @@ export async function POST(request: Request) {
         }
       }
 
-      await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, worker));
       controller.close();
     },
   });
