@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#ebf3ef"/>
+  <rect x="90" y="80" width="720" height="1040" rx="42" fill="#fffdf7" stroke="#23382f" stroke-width="10"/>
+  <circle cx="450" cy="250" r="100" fill="#23382f"/>
+  <text x="450" y="272" text-anchor="middle" font-family="Georgia, serif" font-size="38" font-weight="700" fill="#fffdf7">STONE'S</text>
+  <text x="450" y="360" text-anchor="middle" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#23382f">THROW</text>
+  <text x="450" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#23382f">American Single Malt Whiskey</text>
+  <text x="450" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#23382f">46% Alc./Vol. (92 Proof)</text>
+  <text x="450" y="660" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#23382f">750 mL</text>
+  <text x="450" y="735" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#23382f">Bottled by Stone's Throw Spirits, Portland, OR</text>
+  <text x="450" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#23382f">United States</text>
+  <text x="130" y="920" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#23382f">GOVERNMENT WARNING:</text>
+  <text x="130" y="950" font-family="Arial, sans-serif" font-size="19" fill="#23382f">(1) According to the Surgeon General, women should not drink alcoholic</text>
+  <text x="130" y="978" font-family="Arial, sans-serif" font-size="19" fill="#23382f">beverages during pregnancy because of the risk of birth defects.</text>
+  <text x="130" y="1006" font-family="Arial, sans-serif" font-size="19" fill="#23382f">(2) Consumption of alcoholic beverages impairs your ability to drive a</text>
+  <text x="130" y="1034" font-family="Arial, sans-serif" font-size="19" fill="#23382f">car or operate machinery, and may cause health problems.</text>
+</svg>

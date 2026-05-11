@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#f8e8e8"/>
+  <rect x="80" y="80" width="740" height="1040" rx="20" fill="#fff" stroke="#7f1d1d" stroke-width="8"/>
+  <text x="450" y="220" text-anchor="middle" font-family="Georgia, serif" font-size="60" font-weight="700" fill="#7f1d1d">RIVER RED</text>
+  <text x="450" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="38" fill="#7f1d1d">California Red Wine</text>
+  <text x="450" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#7f1d1d">13.8% Alc./Vol.</text>
+  <text x="450" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#7f1d1d">750 mL</text>
+  <text x="450" y="680" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#7f1d1d">Produced and bottled by River Red Winery, Napa, CA</text>
+  <text x="450" y="730" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#7f1d1d">United States</text>
+  <text x="135" y="910" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#7f1d1d">Government Warning:</text>
+  <text x="135" y="942" font-family="Arial, sans-serif" font-size="20" fill="#7f1d1d">Pregnant women should avoid alcohol. Drinking may make it</text>
+  <text x="135" y="972" font-family="Arial, sans-serif" font-size="20" fill="#7f1d1d">unsafe to drive or operate machines and can cause health problems.</text>
+</svg>
