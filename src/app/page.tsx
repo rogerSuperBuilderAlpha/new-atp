@@ -26,7 +26,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_15%_10%,#f9dca8,transparent_28%),radial-gradient(circle_at_85%_15%,#bae6fd,transparent_26%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_100%)] text-slate-950">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_15%_10%,#f9dca8,transparent_28%),radial-gradient(circle_at_85%_15%,#bae6fd,transparent_26%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_100%)] text-slate-950">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-3 py-3 sm:px-8">
         <header className="flex items-center justify-between gap-2 rounded-3xl border border-white/70 bg-white/65 px-3 py-2 shadow-sm backdrop-blur sm:gap-3 sm:px-4 sm:py-2.5">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">

@@ -30,10 +30,10 @@ export function VerdictDetailDialog({
           <>
             <DialogHeader>
               <div className="flex flex-wrap items-center gap-3">
-                <DialogTitle className="text-2xl">{item.label}</DialogTitle>
+                <DialogTitle className="break-words text-2xl">{item.label}</DialogTitle>
                 <VerdictBadge status={item.status} />
               </div>
-              <DialogDescription className="text-base">{item.reason}</DialogDescription>
+              <DialogDescription className="break-words text-base">{item.reason}</DialogDescription>
             </DialogHeader>
 
             {isFormattingWarning ? (
@@ -61,9 +61,9 @@ export function VerdictDetailDialog({
 
 function TextBlock({ title, value }: { title: string; value: string | null }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div className="min-w-0 rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{title}</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-900">
+      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">
         {value || "Not provided"}
       </p>
     </div>

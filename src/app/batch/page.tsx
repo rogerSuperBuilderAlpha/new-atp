@@ -351,12 +351,12 @@ export default function BatchPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
-            <Table>
+            <Table className="min-w-[42rem] table-fixed">
               <TableHeader className="sticky top-0 bg-white">
                 <TableRow>
-                  <TableHead>Row</TableHead>
-                  <TableHead>Image</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="w-16">Row</TableHead>
+                  <TableHead className="w-56">Image</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
                   <TableHead>Summary</TableHead>
                 </TableRow>
               </TableHeader>
@@ -369,11 +369,13 @@ export default function BatchPage() {
                       onClick={() => setSelectedRow(row)}
                     >
                       <TableCell className="font-bold">{row.rowId}</TableCell>
-                      <TableCell>{row.imageFile}</TableCell>
+                      <TableCell className="max-w-56 truncate" title={row.imageFile}>
+                        {row.imageFile}
+                      </TableCell>
                       <TableCell>
                         <VerdictBadge status={row.status} />
                       </TableCell>
-                      <TableCell className="max-w-lg text-sm text-slate-600">
+                      <TableCell className="whitespace-normal break-words text-sm text-slate-600">
                         {row.error
                           ? row.error
                           : `${row.result?.summary.pass ?? 0} pass, ${row.result?.summary.warning ?? 0} warning, ${row.result?.summary.fail ?? 0} fail`}

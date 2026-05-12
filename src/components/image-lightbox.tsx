@@ -24,8 +24,10 @@ export function ImageLightbox({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-hidden sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Inspect the uploaded label at a larger size.</DialogDescription>
+          <DialogTitle className="break-words">{title}</DialogTitle>
+          <DialogDescription className="break-words">
+            Inspect the uploaded label at a larger size.
+          </DialogDescription>
         </DialogHeader>
         {src ? (
           <div className="relative h-[70vh] overflow-hidden rounded-3xl bg-slate-100">
