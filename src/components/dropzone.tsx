@@ -11,6 +11,7 @@ type DropzoneProps = {
   onFileChange: (file: File | null) => void;
   label?: string;
   description?: string;
+  actionLabel?: string;
   className?: string;
   compact?: boolean;
   onPreviewClick?: (url: string) => void;
@@ -21,6 +22,7 @@ export function Dropzone({
   onFileChange,
   label = "Drop label image here",
   description = "PNG, JPEG, GIF, or WEBP",
+  actionLabel = "Choose image",
   className,
   compact = false,
   onPreviewClick,
@@ -74,11 +76,14 @@ export function Dropzone({
           </button>
         ) : (
           <>
-            <div className="mb-3 rounded-2xl bg-slate-900 p-3 text-white">
+            <div className="mb-3 rounded-2xl bg-slate-900 p-3 text-white shadow-lg">
               <ImageUp className={compact ? "h-6 w-6" : "h-8 w-8"} aria-hidden />
             </div>
-            <p className={cn("font-semibold text-slate-950", compact ? "text-base" : "text-xl")}>{label}</p>
+            <p className={cn("font-black text-slate-950", compact ? "text-lg" : "text-xl")}>{label}</p>
             <p className="mt-2 max-w-sm text-sm text-slate-600">{description}</p>
+            <span className="mt-4 rounded-full bg-slate-950 px-5 py-2 text-sm font-bold text-white shadow-sm">
+              {actionLabel}
+            </span>
           </>
         )}
       </label>

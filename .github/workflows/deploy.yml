@@ -51,22 +51,41 @@ jobs:
       - name: Run quality gate
         run: pnpm check
 
+      - name: Check Vercel deploy secrets
+        id: vercel-secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [[ -n "$VERCEL_TOKEN" && -n "$VERCEL_ORG_ID" && -n "$VERCEL_PROJECT_ID" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Vercel preview deployment because VERCEL_TOKEN, VERCEL_ORG_ID, or VERCEL_PROJECT_ID is not configured."
+            echo "Vercel preview deployment skipped: configure VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID secrets to enable it." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Install Vercel CLI
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: pnpm add --global vercel@${{ env.VERCEL_CLI_VERSION }}
 
       - name: Pull Vercel preview environment
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build preview artifact
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy preview artifact
+        if: steps.vercel-secrets.outputs.available == 'true'
         id: deploy
         run: |
           url="$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})"
@@ -76,7 +95,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Comment preview URL
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.vercel-secrets.outputs.available == 'true'
         uses: actions/github-script@v9
         with:
           script: |
@@ -130,22 +149,41 @@ jobs:
       - name: Run quality gate
         run: pnpm check
 
+      - name: Check Vercel deploy secrets
+        id: vercel-secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [[ -n "$VERCEL_TOKEN" && -n "$VERCEL_ORG_ID" && -n "$VERCEL_PROJECT_ID" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Vercel production deployment because VERCEL_TOKEN, VERCEL_ORG_ID, or VERCEL_PROJECT_ID is not configured."
+            echo "Vercel production deployment skipped: configure VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID secrets to enable it." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Install Vercel CLI
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: pnpm add --global vercel@${{ env.VERCEL_CLI_VERSION }}
 
       - name: Pull Vercel production environment
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build production artifact
+        if: steps.vercel-secrets.outputs.available == 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy production artifact
+        if: steps.vercel-secrets.outputs.available == 'true'
         id: deploy
         run: |
           url="$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})"
