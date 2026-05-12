@@ -14,8 +14,8 @@ export function CompactShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f8f1df,transparent_34%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_100%)] text-slate-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-3 px-3 py-3 sm:px-6">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#f8f1df,transparent_34%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_100%)] text-slate-950">
+      <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-7xl flex-col gap-3 px-3 py-3 sm:px-6">
         <header className="flex items-center justify-between gap-2 rounded-3xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm backdrop-blur sm:gap-3 sm:px-4 sm:py-3">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="rounded-2xl bg-slate-950 p-2 text-white sm:p-2.5">

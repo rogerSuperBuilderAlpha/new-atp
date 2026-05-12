@@ -44,16 +44,16 @@ export function BatchRowDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">
+            <DialogTitle className="break-words text-2xl">
               Row {row?.rowId}: {row?.imageFile}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="break-words">
               Drill into the specific fields only when a row needs agent attention.
             </DialogDescription>
           </DialogHeader>
 
           {row?.error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">
+            <div className="break-words rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">
               {row.error}
             </div>
           ) : null}

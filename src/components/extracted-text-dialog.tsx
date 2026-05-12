@@ -56,11 +56,11 @@ export function ExtractedTextDialog({
 
             <div className="grid gap-3 md:grid-cols-2">
               {labelFields.map(({ key, label }) => (
-                <div key={key} className="rounded-2xl bg-slate-50 p-4">
+                <div key={key} className="min-w-0 rounded-2xl bg-slate-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                     {label}
                   </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-900">
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">
                     {typeof fields[key] === "string" && fields[key] ? fields[key] : "Not found"}
                   </p>
                 </div>
@@ -68,11 +68,11 @@ export function ExtractedTextDialog({
             </div>
 
             {fields.additionalText.length ? (
-              <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="min-w-0 rounded-2xl bg-slate-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                   Other text
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-900">
+                <p className="mt-2 break-words text-sm leading-6 text-slate-900">
                   {fields.additionalText.join("; ")}
                 </p>
               </div>

@@ -88,9 +88,9 @@ function CheckLine({ ok, label }: { ok: boolean; label: string }) {
 
 function WarningText({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div className="min-w-0 rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{title}</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-900">{value}</p>
+      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{value}</p>
     </div>
   );
 }

@@ -43,6 +43,10 @@ const beverageLabelLookup: Record<BeverageType, string> = Object.fromEntries(
   beverageOptions.map((option) => [option.value, option.label]),
 ) as Record<BeverageType, string>;
 
+const sampleEntries = Object.entries(sampleLabels) as Array<
+  [SampleKey, (typeof sampleLabels)[SampleKey]]
+>;
+
 export default function VerifyPage() {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -181,10 +185,7 @@ export default function VerifyPage() {
         </ol>
       </section>
 
-      <form
-        className="grid gap-4 lg:h-[calc(100vh-22rem)] lg:min-h-[34rem] lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]"
-        onSubmit={onSubmit}
-      >
+      <form className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]" onSubmit={onSubmit}>
         <section className="flex flex-col gap-3 lg:min-h-0">
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm">
             <div>
@@ -193,7 +194,7 @@ export default function VerifyPage() {
                 Tap the preview to inspect glare, angle, or fine print.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {image ? (
                 <Button
                   type="button"
@@ -216,6 +217,25 @@ export default function VerifyPage() {
                 <Sparkles className="mr-2 h-4 w-4" aria-hidden />
                 Load sample
               </Button>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Reviewer samples
+            </p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {sampleEntries.map(([key, sample]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="justify-start rounded-xl whitespace-normal text-left"
+                  onClick={() => onLoadSample(key)}
+                >
+                  {sample.label}
+                </Button>
+              ))}
             </div>
           </div>
           <Dropzone
@@ -251,7 +271,6 @@ export default function VerifyPage() {
               setExpected={setExpected}
               onToggleFields={() => setShowFields((current) => !current)}
               onEditWarning={() => setWarningEditorOpen(true)}
-              onLoadSample={onLoadSample}
             />
           )}
 
@@ -293,11 +312,25 @@ export default function VerifyPage() {
           <Textarea
             value={expected.governmentWarning ?? ""}
             rows={7}
+            className="break-words"
             onChange={(event) =>
               setExpected((current) => ({ ...current, governmentWarning: event.target.value }))
             }
           />
           <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setExpected((current) => {
+                  const next = { ...current };
+                  delete next.governmentWarning;
+                  return next;
+                })
+              }
+            >
+              Clear expected warning
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -349,7 +382,6 @@ function SetupPanel({
   setExpected,
   onToggleFields,
   onEditWarning,
-  onLoadSample,
 }: {
   showFields: boolean;
   hasAnyExpected: boolean;
@@ -357,7 +389,6 @@ function SetupPanel({
   setExpected: React.Dispatch<React.SetStateAction<ExpectedFields>>;
   onToggleFields: () => void;
   onEditWarning: () => void;
-  onLoadSample: (sampleKey: SampleKey) => void;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -392,31 +423,6 @@ function SetupPanel({
 
       {showFields ? (
         <div className="flex-1 space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-          <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Reviewer samples
-            </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {(Object.entries(sampleLabels) as Array<[SampleKey, (typeof sampleLabels)[SampleKey]]>).map(
-                ([key, sample]) => (
-                  <Button
-                    key={key}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="justify-start rounded-xl"
-                    onClick={() => onLoadSample(key)}
-                  >
-                    {sample.label}
-                  </Button>
-                ),
-              )}
-            </div>
-            <p className="mt-2 text-xs leading-5 text-slate-600">
-              Use these to demonstrate pass, warning, fail, and image-quality paths without
-              hunting for outside test labels.
-            </p>
-          </div>
           {expectedFieldDefinitions
             .filter((field) => field.key !== "governmentWarning")
             .map((field) => {
@@ -526,10 +532,7 @@ function SetupPanel({
             run the standard compliance checks (required fields, ABV format, net contents
             wording, Government Warning text, image readability).
           </p>
-          <p className="mt-2">
-            To compare against COLA application values or load a warning/fail sample, tap{" "}
-            <span className="font-semibold">Add fields</span> above. Hidden fields are ignored.
-          </p>
+          <p className="mt-2">Hidden fields are ignored. Use the reviewer sample buttons beside the label preview to load pass, warning, fail, and image-quality examples.</p>
         </div>
       )}
     </div>
