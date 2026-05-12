@@ -1,19 +1,15 @@
 import { ExpectedFieldsSchema } from "@/lib/schema";
+import { PublicError, assertImageSize, assertSupportedImage } from "@/lib/limits";
 
 export async function readImageFromFormData(formData: FormData, key = "image") {
   const file = formData.get(key);
 
   if (!(file instanceof File)) {
-    throw new Error(`Missing image file field "${key}".`);
+    throw new PublicError(`Missing image file field "${key}".`);
   }
 
-  const supportedTypes = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
-
-  if (!supportedTypes.has(file.type)) {
-    throw new Error(
-      `${file.name || "Uploaded file"} must be a PNG, JPEG, GIF, or WEBP image.`,
-    );
-  }
+  assertSupportedImage(file);
+  assertImageSize(file);
 
   const buffer = new Uint8Array(await file.arrayBuffer());
 
@@ -28,10 +24,17 @@ export function readExpectedFields(formData: FormData) {
   const rawExpected = formData.get("expected");
 
   if (typeof rawExpected === "string" && rawExpected.trim().length > 0) {
-    return ExpectedFieldsSchema.parse(JSON.parse(rawExpected));
+    try {
+      const parsed = ExpectedFieldsSchema.safeParse(JSON.parse(rawExpected));
+      if (!parsed.success) throw new PublicError("Expected fields contain an invalid value.");
+      return parsed.data;
+    } catch (error) {
+      if (error instanceof PublicError) throw error;
+      throw new PublicError("Expected fields must be valid JSON.");
+    }
   }
 
-  return ExpectedFieldsSchema.parse({
+  const parsed = ExpectedFieldsSchema.safeParse({
     brandName: formData.get("brandName"),
     classType: formData.get("classType"),
     alcoholContent: formData.get("alcoholContent"),
@@ -41,10 +44,19 @@ export function readExpectedFields(formData: FormData) {
     governmentWarning: formData.get("governmentWarning"),
     beverageType: formData.get("beverageType") || undefined,
   });
+
+  if (!parsed.success) {
+    throw new PublicError("Expected fields contain an invalid value.");
+  }
+
+  return parsed.data;
 }
 
 export function errorResponse(error: unknown, status = 400) {
-  const message = error instanceof Error ? error.message : "Something went wrong.";
+  if (error instanceof PublicError) {
+    return Response.json({ error: error.message }, { status: error.status });
+  }
 
-  return Response.json({ error: message }, { status });
+  console.error(error);
+  return Response.json({ error: "Unable to process the label. Try again or use a clearer image." }, { status });
 }

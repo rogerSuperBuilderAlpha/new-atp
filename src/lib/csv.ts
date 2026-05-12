@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import { PublicError, uploadLimits } from "@/lib/limits";
 import { ExpectedFieldsSchema, type BatchRow, type VerificationResult } from "@/lib/schema";
 
 export const csvHeaders = [
@@ -23,11 +24,25 @@ export function parseBatchCsv(csvText: string): BatchRow[] {
   });
 
   if (parsed.errors.length > 0) {
-    throw new Error(parsed.errors.map((error) => error.message).join("; "));
+    throw new PublicError(`Invalid CSV: ${parsed.errors.map((error) => error.message).join("; ")}`);
+  }
+
+  if (parsed.data.length > uploadLimits.maxCsvRows) {
+    throw new PublicError(`CSV files can include at most ${uploadLimits.maxCsvRows} rows.`);
   }
 
   return parsed.data.map((row, index) => {
-    const expected = ExpectedFieldsSchema.parse({
+    for (const [header, value] of Object.entries(row)) {
+      if ((value ?? "").length > uploadLimits.maxCsvCellChars) {
+        throw new PublicError(
+          `Row ${index + 1} column ${header || "(unnamed)"} is too long. Keep cells under ${
+            uploadLimits.maxCsvCellChars
+          } characters.`,
+        );
+      }
+    }
+
+    const expected = ExpectedFieldsSchema.safeParse({
       brandName: row.brandName,
       classType: row.classType,
       alcoholContent: row.alcoholContent,
@@ -38,12 +53,16 @@ export function parseBatchCsv(csvText: string): BatchRow[] {
       beverageType: row.beverageType || "spirits",
     });
 
+    if (!expected.success) {
+      throw new PublicError(`Invalid CSV row ${index + 1}: check the beverageType and field values.`);
+    }
+
     if (!row.imageFile) {
-      throw new Error(`Row ${index + 1} is missing imageFile.`);
+      throw new PublicError(`Row ${index + 1} is missing imageFile.`);
     }
 
     return {
-      ...expected,
+      ...expected.data,
       rowId: row.rowId || String(index + 1),
       imageFile: row.imageFile,
     };
@@ -78,16 +97,20 @@ export function resultsToCsv(
 ) {
   return Papa.unparse(
     rows.map((row) => ({
-      rowId: row.rowId,
-      imageFile: row.imageFile,
+      rowId: escapeCsvCell(row.rowId),
+      imageFile: escapeCsvCell(row.imageFile),
       status: row.result?.summary.status ?? "error",
       pass: row.result?.summary.pass ?? 0,
       warning: row.result?.summary.warning ?? 0,
       fail: row.result?.summary.fail ?? 0,
       unknown: row.result?.summary.unknown ?? 0,
-      extractedBrandName: row.result?.extracted.brandName ?? "",
-      extractedAlcoholContent: row.result?.extracted.alcoholContent ?? "",
-      error: row.error ?? "",
+      extractedBrandName: escapeCsvCell(row.result?.extracted.brandName ?? ""),
+      extractedAlcoholContent: escapeCsvCell(row.result?.extracted.alcoholContent ?? ""),
+      error: escapeCsvCell(row.error ?? ""),
     })),
   );
+}
+
+export function escapeCsvCell(value: string) {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }

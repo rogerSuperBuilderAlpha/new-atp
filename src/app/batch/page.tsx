@@ -13,6 +13,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { uploadLimits, formatBytes } from "@/lib/limits";
 import {
   Table,
   TableBody,
@@ -51,49 +52,68 @@ export default function BatchPage() {
     setRows([]);
     setError(null);
 
-    if (images.length === 0) {
-      setError("Choose at least one label image.");
+    const clientValidationError = validateClientSelection(images, csv);
+    if (clientValidationError) {
+      setError(clientValidationError);
       return;
     }
 
     setIsLoading(true);
-    const formData = new FormData();
-    if (csv) formData.append("csv", csv);
-    if (beverageType) formData.append("beverageType", beverageType);
-    for (const image of images) formData.append("images", image);
+    try {
+      const formData = new FormData();
+      if (csv) formData.append("csv", csv);
+      if (beverageType) formData.append("beverageType", beverageType);
+      for (const image of images) formData.append("images", image);
 
-    const response = await fetch("/api/batch", { method: "POST", body: formData });
+      const response = await fetch("/api/batch", { method: "POST", body: formData });
 
-    if (!response.ok || !response.body) {
-      const payload = await response.json().catch(() => ({ error: "The batch request did not complete." }));
-      setError(payload.error ?? "The batch request did not complete.");
-      setIsLoading(false);
-      return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const row = JSON.parse(line) as BatchResultRow;
-        setRows((current) => [...current, row]);
+      if (!response.ok || !response.body) {
+        const payload = await response
+          .json()
+          .catch(() => ({ error: "The batch request did not complete." }));
+        setError(payload.error ?? "The batch request did not complete.");
+        return;
       }
-    }
 
-    if (buffer.trim()) {
-      setRows((current) => [...current, JSON.parse(buffer) as BatchResultRow]);
-    }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-    setIsLoading(false);
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          appendBatchRow(line);
+        }
+      }
+
+      if (buffer.trim()) appendBatchRow(buffer);
+    } catch {
+      setError("The batch stream was interrupted. Keep any completed rows and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function appendBatchRow(line: string) {
+    try {
+      setRows((current) => [...current, JSON.parse(line) as BatchResultRow]);
+    } catch {
+      setRows((current) => [
+        ...current,
+        {
+          rowId: String(current.length + 1),
+          imageFile: "unknown",
+          status: "error",
+          error: "A malformed row was returned by the server.",
+        },
+      ]);
+    }
   }
 
   function downloadTemplate() {
@@ -380,4 +400,44 @@ export default function BatchPage() {
       />
     </CompactShell>
   );
+}
+
+function validateClientSelection(images: File[], csv: File | null) {
+  if (images.length === 0) return "Choose at least one label image.";
+
+  if (images.length > uploadLimits.maxImages) {
+    return `Upload at most ${uploadLimits.maxImages} label images per batch.`;
+  }
+
+  if (csv && csv.size > uploadLimits.maxCsvBytes) {
+    return `The CSV file is ${formatBytes(csv.size)}. The CSV limit is ${formatBytes(
+      uploadLimits.maxCsvBytes,
+    )}.`;
+  }
+
+  const seenNames = new Set<string>();
+  let totalBytes = 0;
+
+  for (const image of images) {
+    if (image.size > uploadLimits.maxImageBytes) {
+      return `${image.name} is ${formatBytes(image.size)}. The per-image limit is ${formatBytes(
+        uploadLimits.maxImageBytes,
+      )}.`;
+    }
+
+    if (seenNames.has(image.name)) {
+      return `Duplicate filename "${image.name}". Rename one file so each upload is unique.`;
+    }
+
+    seenNames.add(image.name);
+    totalBytes += image.size;
+  }
+
+  if (totalBytes > uploadLimits.maxTotalImageBytes) {
+    return `Selected images total ${formatBytes(totalBytes)}. The batch limit is ${formatBytes(
+      uploadLimits.maxTotalImageBytes,
+    )}.`;
+  }
+
+  return null;
 }
