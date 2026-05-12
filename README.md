@@ -110,7 +110,7 @@ Enable AI Gateway for the Vercel project and configure auth via OIDC (`vercel en
 The repository includes GitHub Actions workflows for a professional review and release path:
 
 - `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm test`, `pnpm build`, and a high-severity production dependency audit on pull requests and pushes to `main`.
-- `.github/workflows/deploy.yml` runs the same local quality gate, builds with the Vercel CLI, and deploys prebuilt artifacts. Pull requests get preview deployments and a PR comment with the preview URL. Pushes to `main` deploy production.
+- `.github/workflows/deploy.yml` runs the same local quality gate, builds with the Vercel CLI, and deploys prebuilt artifacts when the required Vercel secrets are configured. Pull requests get preview deployments and a PR comment with the preview URL; pushes to `main` deploy production. If the deploy secrets are absent, the workflow exits successfully after the quality gate and writes a clear skip notice.
 - `.github/workflows/codeql.yml` runs GitHub CodeQL analysis on pull requests, pushes to `main`, and weekly scheduled scans.
 - `.github/dependabot.yml` keeps npm and GitHub Actions dependencies current with weekly update PRs.
 - `.github/pull_request_template.md` and `.github/CODEOWNERS` add review hygiene for security-sensitive changes.

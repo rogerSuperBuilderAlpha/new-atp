@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, FileText, Loader2, ScanLine, Sparkles, X } from "lucide-react";
+import { ChevronDown, FileText, Loader2, RotateCcw, ScanLine, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { CompactShell } from "@/components/compact-shell";
 import { Dropzone } from "@/components/dropzone";
@@ -52,6 +52,7 @@ export default function VerifyPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [expected, setExpected] = useState<ExpectedFields>({});
   const [showFields, setShowFields] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [warningEditorOpen, setWarningEditorOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<VerdictItem | null>(null);
   const [warningItem, setWarningItem] = useState<FieldVerdict | null>(null);
@@ -141,70 +142,95 @@ export default function VerifyPage() {
       title="Review a label"
       description="Upload a label image to extract the visible fields and run the standard TTB compliance checks. Optionally provide values from the COLA application for a side-by-side comparison."
     >
-      <section className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
-            How to use this page
-          </p>
-          <InfoTip title="What happens when you click Analyze">
-            <p>
-              The image is sent to a vision model that extracts the visible text fields and
-              classifies the beverage type. The extracted text is then checked against TTB
-              compliance rules using deterministic logic (not the model). Nothing is stored
-              after the response is returned.
+      <section className="rounded-3xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
+              How to use this page
             </p>
-          </InfoTip>
+            <InfoTip title="What happens when you click Analyze">
+              <p>
+                The image is sent to a vision model that extracts the visible text fields and
+                classifies the beverage type. The extracted text is then checked against TTB
+                compliance rules using deterministic logic (not the model). Nothing is stored
+                after the response is returned.
+              </p>
+            </InfoTip>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="rounded-full"
+            aria-expanded={showInstructions}
+            onClick={() => setShowInstructions((current) => !current)}
+          >
+            <ChevronDown
+              className={`mr-1 h-4 w-4 transition ${showInstructions ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+            {showInstructions ? "Hide instructions" : "Show instructions"}
+          </Button>
         </div>
-        <ol className="mt-3 grid gap-2 text-sm leading-6 text-slate-700 md:grid-cols-3">
-          <li className="rounded-2xl bg-slate-50 p-3">
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Step 1
-            </span>
-            <p className="mt-1 font-semibold text-slate-950">Upload the label image.</p>
-            <p className="mt-1">PNG, JPEG, GIF, or WEBP. Use the largest clear copy available.</p>
-          </li>
-          <li className="rounded-2xl bg-slate-50 p-3">
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Step 2 (optional)
-            </span>
-            <p className="mt-1 font-semibold text-slate-950">
-              Add the application values for comparison.
-            </p>
-            <p className="mt-1">
-              Skip this step for a compliance-only audit. Add it to also see a field-by-field
-              comparison.
-            </p>
-          </li>
-          <li className="rounded-2xl bg-slate-50 p-3">
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Step 3
-            </span>
-            <p className="mt-1 font-semibold text-slate-950">Analyze and review.</p>
-            <p className="mt-1">Open any row to see the expected and extracted text in detail.</p>
-          </li>
-        </ol>
+        {showInstructions ? (
+          <ol className="mt-3 grid gap-2 text-sm leading-6 text-slate-700 md:grid-cols-3">
+            <li className="rounded-2xl bg-slate-50 p-3">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Step 1
+              </span>
+              <p className="mt-1 font-semibold text-slate-950">Upload the label image.</p>
+              <p className="mt-1">PNG, JPEG, GIF, or WEBP. Use the largest clear copy available.</p>
+            </li>
+            <li className="rounded-2xl bg-slate-50 p-3">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Step 2 (optional)
+              </span>
+              <p className="mt-1 font-semibold text-slate-950">
+                Add the application values for comparison.
+              </p>
+              <p className="mt-1">
+                Skip this step for a compliance-only audit. Add it to also see a field-by-field
+                comparison.
+              </p>
+            </li>
+            <li className="rounded-2xl bg-slate-50 p-3">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Step 3
+              </span>
+              <p className="mt-1 font-semibold text-slate-950">Analyze and review.</p>
+              <p className="mt-1">Open any row to see the expected and extracted text in detail.</p>
+            </li>
+          </ol>
+        ) : (
+          <p className="mt-2 text-sm text-slate-600">
+            Upload a label, optionally add application values, then analyze.
+          </p>
+        )}
       </section>
 
-      <form className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]" onSubmit={onSubmit}>
+      <form className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]" onSubmit={onSubmit}>
         <section className="flex flex-col gap-3 lg:min-h-0">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-slate-300 bg-white p-3 shadow-sm ring-1 ring-slate-200">
             <div>
-              <p className="text-sm font-bold text-slate-950">Label artwork</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Step 1
+              </p>
+              <p className="text-lg font-black text-slate-950">Upload label artwork</p>
               <p className="text-xs text-slate-600">
-                Tap the preview to inspect glare, angle, or fine print.
+                Start here. Choose a label image, then analyze or load a reviewer sample.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {image ? (
+              {image && !result ? (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
-                  className="rounded-full"
+                  className="rounded-full font-bold shadow-sm"
                   onClick={onClearAll}
                 >
-                  <X className="mr-1 h-4 w-4" aria-hidden />
-                  Clear
+                  <RotateCcw className="mr-1 h-4 w-4" aria-hidden />
+                  Reset review
                 </Button>
               ) : null}
               <Button
@@ -219,18 +245,37 @@ export default function VerifyPage() {
               </Button>
             </div>
           </div>
+          <Dropzone
+            file={image}
+            label="Choose or drop a label image"
+            description="PNG, JPEG, GIF, or WEBP. Tap this box to upload from phone, tablet, or desktop."
+            actionLabel="Upload label image"
+            onFileChange={(file) => {
+              setImage(file);
+              setResult(null);
+            }}
+            compact
+            className="flex-1 border-2 border-slate-900/70 bg-white shadow-lg ring-4 ring-amber-100 lg:min-h-0"
+            onPreviewClick={(url) => {
+              setPreviewUrl(url);
+              setLightboxOpen(true);
+            }}
+          />
           <div className="rounded-3xl border border-slate-200 bg-white/80 p-3 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Reviewer samples
-            </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Reviewer samples
+              </p>
+              <p className="text-xs text-slate-500">Pass, warning, fail, and glare paths.</p>
+            </div>
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
               {sampleEntries.map(([key, sample]) => (
                 <Button
                   key={key}
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="justify-start rounded-xl whitespace-normal text-left"
+                  className="h-auto min-h-9 justify-start rounded-xl px-3 py-1.5 text-left whitespace-normal"
                   onClick={() => onLoadSample(key)}
                 >
                   {sample.label}
@@ -238,19 +283,6 @@ export default function VerifyPage() {
               ))}
             </div>
           </div>
-          <Dropzone
-            file={image}
-            onFileChange={(file) => {
-              setImage(file);
-              setResult(null);
-            }}
-            compact
-            className="flex-1 lg:min-h-0"
-            onPreviewClick={(url) => {
-              setPreviewUrl(url);
-              setLightboxOpen(true);
-            }}
-          />
         </section>
 
         <section className="flex flex-col rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm lg:min-h-0">
@@ -262,6 +294,7 @@ export default function VerifyPage() {
               onOpenVerdict={openVerdict}
               onOpenExtracted={() => setExtractedOpen(true)}
               onEditAgain={() => setResult(null)}
+              onResetReview={onClearAll}
             />
           ) : (
             <SetupPanel
@@ -546,6 +579,7 @@ function ResultPanel({
   onOpenVerdict,
   onOpenExtracted,
   onEditAgain,
+  onResetReview,
 }: {
   result: VerificationResult;
   detectedBeverage: BeverageType | null | undefined;
@@ -553,6 +587,7 @@ function ResultPanel({
   onOpenVerdict: (item: VerdictItem) => void;
   onOpenExtracted: () => void;
   onEditAgain: () => void;
+  onResetReview: () => void;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:min-h-0">
@@ -573,15 +608,27 @@ function ResultPanel({
               : "Tap any row for the supporting evidence."}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-full"
-          onClick={onEditAgain}
-        >
-          Edit inputs
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="rounded-full font-bold shadow-sm"
+            onClick={onResetReview}
+          >
+            <RotateCcw className="mr-1 h-4 w-4" aria-hidden />
+            Reset review
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={onEditAgain}
+          >
+            Edit inputs
+          </Button>
+        </div>
       </div>
 
       <ResultSummary summary={result.summary} compact />
