@@ -3,6 +3,7 @@ import { ArrowRight, Files, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
+import { formatBytes, uploadLimits } from "@/lib/limits";
 
 export default function Home() {
   const workflows = [
@@ -137,6 +138,40 @@ export default function Home() {
             );
           })}
         </div>
+
+        <section className="grid gap-3 rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm md:grid-cols-3">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
+              Security and limits
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Prototype only: not for production COLA decisions. Uploads are processed in memory,
+              discarded after the response, and capped at {uploadLimits.maxImages} images per batch,
+              {formatBytes(uploadLimits.maxImageBytes)} per image, and{" "}
+              {formatBytes(uploadLimits.maxCsvBytes)} per CSV.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
+              AI data flow
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Images are sent from the server to Vercel AI Gateway and the configured model
+              provider for text extraction. Gateway credentials stay server-side; no model API key
+              is exposed to the browser.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">
+              Performance target
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Sarah&apos;s 5-second target is the product goal. Current prototype latency depends on
+              provider response time; the app uses low-detail extraction and streaming batch rows to
+              reduce perceived wait.
+            </p>
+          </div>
+        </section>
       </section>
     </main>
   );

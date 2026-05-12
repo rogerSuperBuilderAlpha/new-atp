@@ -14,7 +14,7 @@ import {
 import { ExtractedTextDialog } from "@/components/extracted-text-dialog";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { ResultSummary } from "@/components/result-summary";
-import { loadSampleLabel, sampleExpectedFields } from "@/components/sample-loader";
+import { loadSampleLabel, sampleLabels, type SampleKey } from "@/components/sample-loader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +60,7 @@ export default function VerifyPage() {
   const hasAnyExpected = expectedFieldDefinitions.some(
     (field) => Boolean((expected[field.key] as string | undefined)?.trim()),
   );
+  const comparisonEnabled = showFields && hasAnyExpected;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,7 +76,7 @@ export default function VerifyPage() {
     try {
       const formData = new FormData();
       formData.append("image", image);
-      formData.append("expected", JSON.stringify(expected));
+      formData.append("expected", JSON.stringify(comparisonEnabled ? expected : {}));
 
       const response = await fetch("/api/verify", { method: "POST", body: formData });
       const payload = await response.json();
@@ -91,11 +92,12 @@ export default function VerifyPage() {
     }
   }
 
-  async function onLoadSample() {
+  async function onLoadSample(sampleKey: SampleKey = "clean") {
+    const sample = sampleLabels[sampleKey];
     setError(null);
-    setExpected(sampleExpectedFields);
+    setExpected(sample.expected);
     setShowFields(true);
-    setImage(await loadSampleLabel());
+    setImage(await loadSampleLabel(sampleKey));
     setResult(null);
   }
 
@@ -209,7 +211,7 @@ export default function VerifyPage() {
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                onClick={onLoadSample}
+                onClick={() => onLoadSample("clean")}
               >
                 <Sparkles className="mr-2 h-4 w-4" aria-hidden />
                 Load sample
@@ -249,6 +251,7 @@ export default function VerifyPage() {
               setExpected={setExpected}
               onToggleFields={() => setShowFields((current) => !current)}
               onEditWarning={() => setWarningEditorOpen(true)}
+              onLoadSample={onLoadSample}
             />
           )}
 
@@ -270,7 +273,7 @@ export default function VerifyPage() {
                 ? "Reading label..."
                 : result
                   ? "Analyze again"
-                  : hasAnyExpected
+                  : comparisonEnabled
                     ? "Analyze and compare"
                     : "Analyze label"}
             </Button>
@@ -346,6 +349,7 @@ function SetupPanel({
   setExpected,
   onToggleFields,
   onEditWarning,
+  onLoadSample,
 }: {
   showFields: boolean;
   hasAnyExpected: boolean;
@@ -353,6 +357,7 @@ function SetupPanel({
   setExpected: React.Dispatch<React.SetStateAction<ExpectedFields>>;
   onToggleFields: () => void;
   onEditWarning: () => void;
+  onLoadSample: (sampleKey: SampleKey) => void;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -366,8 +371,8 @@ function SetupPanel({
           </div>
           <p className="text-xs text-slate-600">
             {showFields
-              ? "Provide the values you would compare against in the application."
-              : "Optional. Add these to also see a field-by-field comparison."}
+              ? "Comparison is ON. Hide this section to run compliance-only review."
+              : "Comparison is OFF. Add fields to compare against COLA application values."}
           </p>
         </div>
         <Button
@@ -387,6 +392,31 @@ function SetupPanel({
 
       {showFields ? (
         <div className="flex-1 space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Reviewer samples
+            </p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {(Object.entries(sampleLabels) as Array<[SampleKey, (typeof sampleLabels)[SampleKey]]>).map(
+                ([key, sample]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-start rounded-xl"
+                    onClick={() => onLoadSample(key)}
+                  >
+                    {sample.label}
+                  </Button>
+                ),
+              )}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              Use these to demonstrate pass, warning, fail, and image-quality paths without
+              hunting for outside test labels.
+            </p>
+          </div>
           {expectedFieldDefinitions
             .filter((field) => field.key !== "governmentWarning")
             .map((field) => {
@@ -409,6 +439,7 @@ function SetupPanel({
                       value={(expected[field.key] as string | undefined) ?? ""}
                       placeholder={field.placeholder}
                       rows={2}
+                      className="placeholder:italic placeholder:text-slate-400"
                       onChange={(event) =>
                         setExpected((current) => ({ ...current, [field.key]: event.target.value }))
                       }
@@ -418,6 +449,7 @@ function SetupPanel({
                       id={field.key}
                       value={(expected[field.key] as string | undefined) ?? ""}
                       placeholder={field.placeholder}
+                      className="placeholder:italic placeholder:text-slate-400"
                       onChange={(event) =>
                         setExpected((current) => ({ ...current, [field.key]: event.target.value }))
                       }
@@ -495,8 +527,8 @@ function SetupPanel({
             wording, Government Warning text, image readability).
           </p>
           <p className="mt-2">
-            To also compare against COLA application values, tap{" "}
-            <span className="font-semibold">Add fields</span> above.
+            To compare against COLA application values or load a warning/fail sample, tap{" "}
+            <span className="font-semibold">Add fields</span> above. Hidden fields are ignored.
           </p>
         </div>
       )}

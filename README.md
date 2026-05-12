@@ -80,7 +80,7 @@ compliance decision.
 
 - Uploaded labels and CSV rows are processed in memory and are not stored by this app after the request completes.
 - AI Gateway credentials are used only on the server. No `NEXT_PUBLIC_` secret is required.
-- Label images may contain business-sensitive names, addresses, or artwork. In this prototype, those images are sent to the configured AI provider through AI Gateway for extraction; a production deployment would need a reviewed data-retention agreement and logging policy.
+- Label images may contain business-sensitive names, addresses, or artwork. In this prototype, those images are sent server-side through Vercel AI Gateway to the configured model provider (default `openai/gpt-5.5`) for extraction; the browser never receives provider credentials. A production deployment would need a reviewed data-retention agreement and logging policy for the selected provider and gateway configuration.
 - Public AI-powered endpoints can be abused for cost or quota exhaustion. This prototype adds upload and batch limits plus sanitized error messages, but production should add authentication, rate limiting, audit logs, and per-user usage budgets.
 - File MIME types from browsers are not a complete security boundary. Production should validate image signatures and dimensions with a safe decoder before model submission.
 - Batch CSV exports escape spreadsheet formula prefixes such as `=`, `+`, `-`, and `@` to reduce CSV injection risk when reports are opened in Excel or similar tools.
@@ -93,6 +93,7 @@ Sarah's 5-second usability target informed the design:
 - The model call is limited to extraction and uses low-detail image input.
 - Compliance decisions are deterministic TypeScript checks rather than a second model call.
 - Batch review runs up to five labels concurrently and streams NDJSON rows as each label finishes, so agents can start reviewing partial results.
+- The current hosted prototype may still exceed 5 seconds on a cold provider path or large image. To close the gap for production, the next steps would be browser-side image resizing, a faster OCR-first path for clean labels, per-label latency telemetry, and provider/model routing tuned for vision latency.
 
 ## Deploy
 

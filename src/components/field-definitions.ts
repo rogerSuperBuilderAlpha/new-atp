@@ -11,32 +11,32 @@ export const expectedFieldDefinitions = [
   {
     key: "brandName",
     label: "Brand name",
-    placeholder: "OLD TOM DISTILLERY",
+    placeholder: "Example: OLD TOM DISTILLERY",
   },
   {
     key: "classType",
     label: "Class/type",
-    placeholder: "Kentucky Straight Bourbon Whiskey",
+    placeholder: "Example: Kentucky Straight Bourbon Whiskey",
   },
   {
     key: "alcoholContent",
     label: "Alcohol content",
-    placeholder: "45% Alc./Vol. (90 Proof)",
+    placeholder: "Example: 45% Alc./Vol. (90 Proof)",
   },
   {
     key: "netContents",
     label: "Net contents",
-    placeholder: "750 mL",
+    placeholder: "Example: 750 mL",
   },
   {
     key: "producerNameAddress",
     label: "Producer / bottler / importer",
-    placeholder: "Bottled by Old Tom Distillery, Louisville, KY",
+    placeholder: "Example: Bottled by Old Tom Distillery, Louisville, KY",
   },
   {
     key: "countryOfOrigin",
     label: "Country of origin",
-    placeholder: "United States",
+    placeholder: "Example: United States",
   },
   {
     key: "governmentWarning",
