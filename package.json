@@ -17,10 +17,10 @@
     "check": "pnpm lint && pnpm test && pnpm build"
   },
   "dependencies": {
-    "ai": "^6.0.177",
+    "ai": "^6.0.185",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.14.0",
+    "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "papaparse": "^5.5.3",
     "radix-ui": "^1.4.3",
